@@ -6,30 +6,27 @@ import string
 import numpy as np
 import random
 
-
-
 class dataLoader():
     def __init__(self):
         self.training_set, self.testing_set = self.load_data()
+        self.training_set_size = len(self.training_set)
+        self.testing_set_size = len(self.testing_set)
         self.reset()
 
     def load_data(self):
         out_data = []
-        paths = ['snli_1.0_train.jsonl','snli_1.0_dev.jsonl']
+        paths = ['train_refined.json','dev_refined.json']
         for path in paths:
             data = []
-            for line in open('snli/'+path, 'r'):
-                l = json.loads(line)
-                if l ['gold_label'] == 'entailment':
-                    label = [1,0,0]
-                elif l ['gold_label'] == 'neutral':
-                    label = [0,1,0]
-                elif l ['gold_label'] == 'contradiction':
-                    label = [0,0,1]
+            loaded_data = json.load(open(path, 'r'))
+            for l in loaded_data:
+                
                 d = {
                     'sentence1':l['sentence1'],
                     'sentence2':l['sentence2'],
-                    'label':label
+                    'sentence1_arr':l['sentence1_arr'],
+                    'sentence2_arr':l['sentence2_arr'],
+                    'label':l['label']
                 }
                 data.append(d)
             out_data.append(data)
@@ -74,6 +71,15 @@ class dataLoader():
         batch = self.testing_set[indices]
 
         return batch
+    
+    # def split_sentence(self,sentence):
+    #     translator = str.maketrans(string.punctuation, ' '*len(string.punctuation)) #map punctuation to space
+    #     sentence = sentence.translate(translator)
+    #     sentence = sentence.strip()
+    #     sentence = sentence.lower()
+    #     sentence = sentence.replace('\n', '')
+    #     words = sentence.split()
+    #     return words
 
 # d = dataLoader()
 # x = d.get_testing_batch(5)

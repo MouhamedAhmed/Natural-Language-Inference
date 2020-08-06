@@ -5,38 +5,42 @@ import torch
 import torch.nn as nn
 import numpy as np
 from data_loader import *
+import copy
 
 
 class batch2vec():
-    def __init__(self, path):
+    def __init__(self, path, device):
         self.w2v = word2vec(path)
+        self.embedding_dim = self.w2v.embedding_matrix.size()[1]
+        self.device = device
     
     def convert_batch_to_vec(self,batch):
-        premises = [e['sentence1'] for e in batch]
-        hypotheses = [e['sentence2'] for e in batch]
+        premises = [e['sentence1_arr'] for e in batch]
+        hypotheses = [e['sentence2_arr'] for e in batch]
+        labels = [e['label'] for e in batch]
 
         premises_vecs = [self.sentence2vec(sentence) for sentence in premises]
         hypotheses_vecs = [self.sentence2vec(sentence) for sentence in hypotheses]
 
-        premises_vecs = pad_sequence(premises_vecs,1)
-        hypotheses_vecs = pad_sequence(hypotheses_vecs,1)
+        premises_original_length = torch.tensor([p.size()[0] for p in premises_vecs]).to(self.device)
+        hypotheses_original_length = torch.tensor([p.size()[0] for p in hypotheses_vecs]).to(self.device)
+        labels = torch.tensor(labels).to(self.device)
 
-        print(premises_vecs.size())
-        print(hypotheses_vecs.size())
+        premises_vecs = pad_sequence(premises_vecs,1).to(self.device)
+        hypotheses_vecs = pad_sequence(hypotheses_vecs,1).to(self.device)
 
+        return premises_vecs, hypotheses_vecs, premises_original_length, hypotheses_original_length, labels
+        
     def sentence2vec(self,sentence):
-        sentence = self.split_sentence(sentence)
         length = len(sentence)
-        i = 0
-        while i < length:
-            word_vec = self.w2v.get_embedding(sentence[i])
-            if word_vec == None:
-                del sentence[i]
-                i -= 1
-                length -= 1
-            i += 1
-
+        
+        # if(len(sentence) == 0):
+        #     return []
         sentence_vec = self.w2v.get_embedding(sentence[0])
+        
+        if(len(sentence) == 1):
+            return sentence_vec
+
         for word in sentence[1:]:
             word_vec = self.w2v.get_embedding(word)
             sentence_vec = torch.cat((sentence_vec, word_vec))
